@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARVEX – AI Travel Agent</title>
+  <meta name="description" content="ARVEX – Your premium AI-powered travel planning assistant. Plan dream trips with intelligent multi-agent technology." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-primary:    #080c14;
+      --bg-secondary:  #0d1220;
+      --bg-card:       rgba(255,255,255,0.04);
+      --bg-card-hover: rgba(255,255,255,0.07);
+      --border:        rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.14);
+
+      --gold:          #e8b45a;
+      --gold-light:    #f5cc80;
+      --gold-glow:     rgba(232,180,90,0.18);
+      --teal:          #00c9b0;
+      --teal-dim:      rgba(0,201,176,0.12);
+      --blue-accent:   #4f8ef7;
+
+      --text-primary:  #f0f2f8;
+      --text-secondary:#8a92a8;
+      --text-muted:    #4a5268;
+
+      --user-bubble:   linear-gradient(135deg, #b8883a 0%, #e8b45a 60%, #f5cc80 100%);
+      --bot-bubble:    rgba(255,255,255,0.05);
+      --radius-lg:     18px;
+      --radius-sm:     10px;
+
+      --shadow-gold:   0 0 40px rgba(232,180,90,0.15), 0 0 80px rgba(232,180,90,0.06);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    /* ── Animated starfield background ─────────────────────────────── */
+    .bg-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(79,142,247,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 50% at 80% 90%, rgba(0,201,176,0.06) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(232,180,90,0.04) 0%, transparent 70%),
+        var(--bg-primary);
+    }
+    .star {
+      position: fixed;
+      border-radius: 50%;
+      background: white;
+      animation: twinkle var(--dur, 3s) ease-in-out infinite;
+      opacity: 0;
+    }
+    @keyframes twinkle {
+      0%,100% { opacity: 0; transform: scale(0.8); }
+      50%      { opacity: var(--max-op, 0.5); transform: scale(1.2); }
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────────── */
+    .app-shell {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column;
+      height: 100vh; max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 28px;
+      background: rgba(8,12,20,0.85);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .header-brand {
+      display: flex; align-items: center; gap: 14px;
+    }
+    .logo-ring {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, var(--gold), var(--teal), var(--gold));
+      display: flex; align-items: center; justify-content: center;
+      animation: spin 8s linear infinite;
+      box-shadow: var(--shadow-gold);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .logo-inner {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--bg-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px; font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+    }
+    .brand-text h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px; font-weight: 700;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, var(--gold-light), var(--gold), var(--teal));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .brand-text p {
+      font-size: 10px; font-weight: 500;
+      color: var(--text-muted); letter-spacing: 2.5px;
+      text-transform: uppercase; margin-top: 1px;
+    }
+    .status-badge {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 14px; border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      font-size: 11px; font-weight: 500; color: var(--text-secondary);
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--teal);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,201,176,0.6); }
+      50%      { opacity: 0.8; box-shadow: 0 0 0 5px rgba(0,201,176,0); }
+    }
+
+    /* ── Chat area ──────────────────────────────────────────────────── */
+    .chat-area {
+      flex: 1; overflow-y: auto;
+      padding: 28px 28px 12px;
+      display: flex; flex-direction: column; gap: 20px;
+      scroll-behavior: smooth;
+    }
+    .chat-area::-webkit-scrollbar { width: 5px; }
+    .chat-area::-webkit-scrollbar-track { background: transparent; }
+    .chat-area::-webkit-scrollbar-thumb {
+      background: var(--border-strong); border-radius: 10px;
+    }
+
+    /* ── Welcome card ───────────────────────────────────────────────── */
+    .welcome-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px 28px;
+      text-align: center;
+      animation: fadeSlideUp 0.6s ease forwards;
+    }
+    .welcome-icon {
+      font-size: 48px; margin-bottom: 16px;
+      display: block;
+      animation: floatIcon 3s ease-in-out infinite;
+    }
+    @keyframes floatIcon {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-6px); }
+    }
+    .welcome-card h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 22px; font-weight: 700; margin-bottom: 10px;
+      background: linear-gradient(90deg, var(--gold-light), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .welcome-card p {
+      font-size: 14px; color: var(--text-secondary); line-height: 1.7;
+      max-width: 480px; margin: 0 auto 24px;
+    }
+    .quick-prompts {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    }
+    .quick-btn {
+      background: var(--bg-card-hover);
+      border: 1px solid var(--border-strong);
+      border-radius: 30px;
+      padding: 9px 18px;
+      font-size: 12px; font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .quick-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+      background: var(--gold-glow);
+      transform: translateY(-2px);
+    }
+
+    /* ── Messages ───────────────────────────────────────────────────── */
+    .msg-row {
+      display: flex; gap: 12px;
+      animation: fadeSlideUp 0.35s ease forwards;
+    }
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .avatar.bot {
+      background: conic-gradient(from 180deg, var(--gold), var(--teal));
+      color: var(--bg-primary);
+    }
+    .avatar.user {
+      background: linear-gradient(135deg, #3b4a6b, #5a6fa0);
+      color: var(--text-primary);
+      font-size: 11px;
+    }
+
+    .bubble {
+      max-width: 72%; padding: 14px 18px;
+      border-radius: var(--radius-lg);
+      font-size: 14px; line-height: 1.75;
+      position: relative;
+    }
+    .bubble.bot {
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+      color: var(--text-primary);
+      backdrop-filter: blur(8px);
+    }
+    .bubble.user {
+      background: var(--user-bubble);
+      border-top-right-radius: 4px;
+      color: #1a0e00;
+      font-weight: 500;
+    }
+
+    /* Markdown inside bot bubble */
+    .bubble.bot h1,.bubble.bot h2,.bubble.bot h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--gold-light); margin: 14px 0 6px;
+      font-size: 15px;
+    }
+    .bubble.bot h1 { font-size: 17px; }
+    .bubble.bot ul,.bubble.bot ol { padding-left: 20px; margin: 8px 0; }
+    .bubble.bot li { margin-bottom: 4px; }
+    .bubble.bot strong { color: var(--gold-light); }
+    .bubble.bot em { color: var(--teal); }
+    .bubble.bot code {
+      background: rgba(255,255,255,0.08); padding: 2px 6px;
+      border-radius: 4px; font-size: 12px; font-family: monospace;
+    }
+    .bubble.bot hr { border-color: var(--border); margin: 12px 0; }
+    .bubble.bot p { margin-bottom: 6px; }
+    .bubble.bot p:last-child { margin-bottom: 0; }
+
+    .msg-time {
+      font-size: 10px; color: var(--text-muted);
+      margin-top: 5px; padding: 0 4px;
+    }
+    .msg-row.user .msg-time { text-align: right; }
+
+    /* ── Typing indicator ───────────────────────────────────────────── */
+    .typing-row { display: flex; gap: 12px; align-items: flex-end; }
+    .typing-bubble {
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg); border-top-left-radius: 4px;
+      padding: 14px 18px;
+      display: flex; gap: 5px; align-items: center;
+    }
+    .typing-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--gold);
+      animation: bounce 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+      30%          { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── Crew AI working banner ─────────────────────────────────────── */
+    .agent-banner {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(232,180,90,0.07);
+      border: 1px solid rgba(232,180,90,0.2);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px; margin-top: -6px;
+      font-size: 12px; color: var(--gold);
+      animation: fadeSlideUp 0.35s ease forwards;
+    }
+    .agent-spinner {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid rgba(232,180,90,0.2);
+      border-top-color: var(--gold);
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Input area ─────────────────────────────────────────────────── */
+    .input-area {
+      padding: 16px 28px 24px;
+      background: rgba(8,12,20,0.85);
+      backdrop-filter: blur(24px);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .input-wrap {
+      display: flex; gap: 12px; align-items: flex-end;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: 16px;
+      padding: 12px 14px;
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .input-wrap:focus-within {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px var(--gold-glow);
+    }
+    #user-input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: var(--text-primary); font-size: 14px; font-family: 'Inter', sans-serif;
+      resize: none; min-height: 24px; max-height: 120px; line-height: 1.6;
+    }
+    #user-input::placeholder { color: var(--text-muted); }
+
+    #send-btn {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--gold) 0%, #c8954a 100%);
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    #send-btn:hover:not(:disabled) {
+      transform: scale(1.08);
+      box-shadow: 0 4px 20px rgba(232,180,90,0.4);
+    }
+    #send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    #send-btn svg { width: 18px; height: 18px; fill: #1a0e00; }
+
+    .input-hint {
+      text-align: center; font-size: 11px; color: var(--text-muted);
+      margin-top: 10px; letter-spacing: 0.3px;
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Scrollbar ──────────────────────────────────────────────────── */
+    * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+
+    /* ── Responsive ─────────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .header { padding: 14px 16px; }
+      .brand-text h1 { font-size: 16px; }
+      .chat-area { padding: 16px 16px 8px; }
+      .input-area { padding: 12px 16px 20px; }
+      .bubble { max-width: 88%; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div class="bg-canvas" id="bg-canvas"></div>
+
+<div class="app-shell">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="logo-ring">
+        <div class="logo-inner">AX</div>
+      </div>
+      <div class="brand-text">
+        <h1>ARVEX</h1>
+        <p>AI Travel Agent</p>
+      </div>
+    </div>
+    <div class="status-badge">
+      <span class="status-dot"></span>
+      Online
+    </div>
+  </header>
+
+  <!-- Chat messages -->
+  <div class="chat-area" id="chat-area">
+    <!-- Welcome card -->
+    <div class="welcome-card" id="welcome-card">
+      <span class="welcome-icon">🌍</span>
+      <h2>Welcome to ARVEX Travel Agent</h2>
+      <p>Your intelligent multi-agent travel companion. Tell me where you want to go — I'll craft a complete, personalized itinerary with offbeat spots, transport, hotels, and a full budget breakdown.</p>
+      <div class="quick-prompts">
+        <button class="quick-btn" onclick="sendQuick('Plan a 5-day trip to Goa for 2 people with a budget of ₹30,000 per person')">🏖️ Goa Getaway</button>
+        <button class="quick-btn" onclick="sendQuick('Plan a 7-day trip to Manali in December for 4 people with budget ₹20,000 per person')">🏔️ Manali Adventure</button>
+        <button class="quick-btn" onclick="sendQuick('Plan a 3-day trip to Jaipur for 2 people with ₹15,000 budget per person')">🏯 Jaipur Heritage</button>
+        <button class="quick-btn" onclick="sendQuick('What all details do you need to plan my trip?')">💬 How does this work?</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input area -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea
+        id="user-input"
+        rows="1"
+        placeholder="Tell ARVEX where you want to travel…"
+        autocomplete="off"
+      ></textarea>
+      <button id="send-btn" onclick="sendMessage()" title="Send">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+    <p class="input-hint">Press <kbd style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-size:10px;">Enter</kbd> to send &nbsp;·&nbsp; <kbd style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-size:10px;">Shift+Enter</kbd> for new line</p>
+  </div>
+</div>
+
+<script>
+  // ── Generate starfield ──────────────────────────────────────────────
+  (function() {
+    const canvas = document.getElementById('bg-canvas');
+    for (let i = 0; i < 80; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      const size = Math.random() * 2 + 0.5;
+      s.style.cssText = `
+        width:${size}px; height:${size}px;
+        top:${Math.random()*100}%; left:${Math.random()*100}%;
+        --dur:${Math.random()*4+2}s;
+        --max-op:${Math.random()*0.5+0.1};
+        animation-delay:${Math.random()*5}s;
+      `;
+      canvas.appendChild(s);
+    }
+  })();
+
+  // ── State ───────────────────────────────────────────────────────────
+  const threadId = 'thread_' + Math.random().toString(36).slice(2);
+  let isBusy = false;
+
+  // ── Auto-resize textarea ────────────────────────────────────────────
+  const inputEl  = document.getElementById('user-input');
+  const sendBtn  = document.getElementById('send-btn');
+  const chatArea = document.getElementById('chat-area');
+
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
+
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!isBusy) sendMessage();
+    }
+  });
+
+  // ── Helpers ─────────────────────────────────────────────────────────
+  function now() {
+    return new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+
+  function scrollBottom() {
+    setTimeout(() => chatArea.scrollTop = chatArea.scrollHeight, 50);
+  }
+
+  function hideWelcome() {
+    const wc = document.getElementById('welcome-card');
+    if (wc) wc.remove();
+  }
+
+  function appendMessage(role, text) {
+    const row = document.createElement('div');
+    row.className = `msg-row ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = `avatar ${role}`;
+    avatar.textContent = role === 'bot' ? 'AX' : 'ME';
+
+    const col = document.createElement('div');
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role}`;
+    if (role === 'bot') {
+      bubble.innerHTML = marked.parse(text);
+    } else {
+      bubble.textContent = text;
+    }
+
+    const time = document.createElement('div');
+    time.className = 'msg-time';
+    time.textContent = now();
+
+    col.appendChild(bubble);
+    col.appendChild(time);
+    row.appendChild(avatar);
+    row.appendChild(col);
+    chatArea.appendChild(row);
+    scrollBottom();
+    return row;
+  }
+
+  function showTyping() {
+    const row = document.createElement('div');
+    row.className = 'typing-row';
+    row.id = 'typing-indicator';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar bot';
+    avatar.textContent = 'AX';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'typing-bubble';
+    bubble.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatArea.appendChild(row);
+    scrollBottom();
+  }
+
+  function showAgentBanner() {
+    const el = document.createElement('div');
+    el.className = 'agent-banner';
+    el.id = 'agent-banner';
+    el.innerHTML = `
+      <div class="agent-spinner"></div>
+      <span>🔍 ARVEX multi-agent crew is researching your trip — finding hidden gems, booking options & building your itinerary. This may take 1–2 minutes…</span>
+    `;
+    chatArea.appendChild(el);
+    scrollBottom();
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typing-indicator');
+    const b = document.getElementById('agent-banner');
+    if (t) t.remove();
+    if (b) b.remove();
+  }
+
+  function setBusy(val) {
+    isBusy = val;
+    sendBtn.disabled = val;
+    inputEl.disabled = val;
+  }
+
+  // ── Send message ────────────────────────────────────────────────────
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || isBusy) return;
+
+    hideWelcome();
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+
+    appendMessage('user', text);
+    setBusy(true);
+    showTyping();
+
+    // After 3s, show the crew-working banner (signals long-running task)
+    const bannerTimer = setTimeout(showAgentBanner, 3000);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, thread_id: threadId })
+      });
+
+      clearTimeout(bannerTimer);
+      removeTyping();
+
+      const data = await res.json();
+      if (data.error) {
+        appendMessage('bot', `⚠️ **Error:** ${data.error}`);
+      } else {
+        appendMessage('bot', data.reply);
+      }
+    } catch (err) {
+      clearTimeout(bannerTimer);
+      removeTyping();
+      appendMessage('bot', `⚠️ **Connection error.** Please check the server is running and try again.\n\n\`${err.message}\``);
+    }
+
+    setBusy(false);
+    inputEl.focus();
+  }
+
+  function sendQuick(text) {
+    inputEl.value = text;
+    sendMessage();
+  }
+
+  // ── Initial focus ───────────────────────────────────────────────────
+  inputEl.focus();
+</script>
+</body>
+</html>
